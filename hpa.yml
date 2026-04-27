@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hpa-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hpa-demo
+  template:
+    metadata:
+      labels:
+        app: hpa-demo
+    spec:
+      containers:
+      - name: app
+        image: polinux/stress
+        command: ["stress"]          # 🔥 THIS FIXES IT
+        args:
+        - "--cpu"
+        - "2"
+        - "--timeout"
+        - "300"
+        resources:
+          requests:
+            cpu: 100m
+          limits:
+            cpu: 500m
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-demo
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: hpa-demo   # your deployment name
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu		# can give memory aas well
+      target:
+        type: Utilization
+        averageUtilization: 25
+  # behavior:
+  #   scaleUp:
+  #     stabilizationWindowSeconds: 0
